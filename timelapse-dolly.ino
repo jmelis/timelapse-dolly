@@ -6,9 +6,12 @@ SoftwareSerial mySerial(3,2); // pin 2 = TX, pin 3 = RX (unused)
 #define MAX_STEPS 100   // Number MAX motor steps per cycle
 #define MIN_STEPS 1     // Number MIN motor steps per cycle
 #define MAX_INTERVAL 30 // Maximum Interval time (s)
-#define MIN_INTERVAL 1  // Minimum Interval time (s)
+#define MIN_INTERVAL 0  // Minimum Interval time (s)
 #define MAX_EXP_TIME 30 // Maximum Exposure time (s)
-#define MIN_EXP_TIME 1  // Mininum Exposure time (s)
+#define MIN_EXP_TIME 0  // Mininum Exposure time (s)
+
+#define INITIAL_DELAY    1000
+#define STABILIZE_DELAY  100
 
 enum ModeScreen {
     M_STEPS    = 0, // Number of motor steps per cycle
@@ -38,6 +41,8 @@ int  pSteps    = MIN_STEPS;    // Number of motor steps per cycle
 int  pInterval = MIN_INTERVAL; // Interval between pictures
 int  pExpTime  = MIN_EXP_TIME; // Exposure Time
 bool pTLState  = false;        // Time-lapse state initialized to off
+
+bool firstPicture = true; // If first picture of TL do special things
 
 // -----------------------------------------------------------------------------
 // LCD Screen Cycle
@@ -91,6 +96,10 @@ void mExpTimeChange(int valueChange) {
 
 void mStartChange() {
     pTLState = !pTLState;
+
+    if (pTLState) {
+        firstPicture = true;
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -169,6 +178,30 @@ void renderStartScren() {
 }
 
 // -----------------------------------------------------------------------------
+// Motor Cycle
+// -----------------------------------------------------------------------------
+
+void doCycle() {
+    // Trigger photo
+    Serial.println("SNAP!");
+
+    // exp time
+    delay(pExpTime*1000);
+
+    // interval
+    delay(pInterval*1000);
+
+    // move
+    Serial.println("Start stepper-motor");
+    delay(200);
+    Serial.println("Stop stepper-motor");
+
+    // Stabilize camera delay
+    Serial.println("delay STABILIZE_DELAY");
+    delay(STABILIZE_DELAY);
+}
+
+// -----------------------------------------------------------------------------
 // Setup. Run once on start
 // -----------------------------------------------------------------------------
 void setup() {
@@ -189,6 +222,9 @@ void setup() {
     pinMode(modeBtnPin,  INPUT);
     pinMode(plusBtnPin,  INPUT);
     pinMode(minusBtnPin, INPUT);
+
+    // Start Serial for debugging
+    Serial.begin(9600);
 }
 
 // -----------------------------------------------------------------------------
@@ -223,6 +259,14 @@ void loop() {
 
     if (modeBtnChange || plusBtnChange || minusBtnChange) {
         render();
+    }
+
+    if (pTLState) {
+        if (firstPicture) {
+            firstPicture = false;
+            delay(INITIAL_DELAY);
+        }
+        doCycle();
     }
 
     delay(1);
