@@ -186,10 +186,14 @@ void doCycle() {
     Serial.println("SNAP!");
 
     // exp time
+    Serial.println("start exp-time");
     delay(pExpTime*1000);
+    Serial.println("stop exp-time");
 
     // interval
+    Serial.println("start interval");
     delay(pInterval*1000);
+    Serial.println("stop interval");
 
     // move
     Serial.println("Start stepper-motor");
