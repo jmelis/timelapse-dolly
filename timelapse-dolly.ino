@@ -125,8 +125,8 @@ void render() {
 }
 
 void renderStepsScreen() {
-    char tempstring[10];
-    sprintf(tempstring,"%4d",pSteps);
+    char tempstring[16];
+    sprintf(tempstring,"%16d",pSteps);
 
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
@@ -138,8 +138,8 @@ void renderStepsScreen() {
 }
 
 void renderIntervalScreen() {
-    char tempstring[10];
-    sprintf(tempstring,"%4d",pSteps);
+    char tempstring[16];
+    sprintf(tempstring,"%16d",pInterval);
 
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
@@ -151,8 +151,8 @@ void renderIntervalScreen() {
 }
 
 void renderExpTimeScren() {
-    char tempstring[10];
-    sprintf(tempstring,"%4d",pExpTime);
+    char tempstring[16];
+    sprintf(tempstring,"%16d",pExpTime);
 
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
