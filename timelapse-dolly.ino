@@ -47,6 +47,7 @@ bool firstPicture = true; // If first picture of TL do special things
 // -----------------------------------------------------------------------------
 // LCD Screen Cycle
 // -----------------------------------------------------------------------------
+
 void nextScreen() {
     // Get next UI screen
     switch (mScreen) {
@@ -208,6 +209,7 @@ void doCycle() {
 // -----------------------------------------------------------------------------
 // Setup. Run once on start
 // -----------------------------------------------------------------------------
+
 void setup() {
     // Initialize LCD
     mySerial.begin(9600); // set up serial port for 9600 baud
@@ -234,6 +236,7 @@ void setup() {
 // -----------------------------------------------------------------------------
 // Loop. Run continuosly
 // -----------------------------------------------------------------------------
+
 void loop() {
     // read buttons
     int newModeBtnState  = digitalRead(modeBtnPin);
