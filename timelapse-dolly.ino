@@ -60,11 +60,11 @@ Parameters params  = {MIN_EXP_TIME, MIN_INTERVAL, MIN_STEPS};
 
 // The Timer data structure keeps track of a running timer
 typedef struct {
-    enum {OFF, ON} status;
+    bool status;
     unsigned long endTime;
 } Timer;
 
-Timer timer = { OFF, 0 };
+Timer timer = { false, 0 };
 
 // if -1 then not moving motor, otherwise the number of remaining steps
 int pendingSteps = -1;
@@ -75,13 +75,13 @@ int pendingSteps = -1;
 
 void resetTimer() {
     Serial.println("End timer at %lu",millis());
-    timer.status  = OFF;
+    timer.status  = false;
     timer.endTime = 0;
 }
 
 void startTimer(int delay) {
     Serial.println("Starting timer of %i ms at %lu",delay,millis());
-    timer.status  = ON;
+    timer.status  = true;
     timer.endTime = millis() + delay;
 }
 
@@ -89,8 +89,8 @@ bool checkTimer() {
     return millis() >= timer.endTime;
 }
 
-void handleTimer(int delay, CycleState state) {
-    if (timer.status == OFF) {
+void handleTimer(int delay) {
+    if (!timer.status) {
         startTimer(delay);
     } else {
         if (checkTimer()) {
