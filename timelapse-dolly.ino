@@ -3,6 +3,7 @@
 // Attach the serial display's RX line to digital pin 2
 SoftwareSerial mySerial(3,2); // pin 2 = TX, pin 3 = RX (unused)
 
+// Limits and Constants
 #define MAX_STEPS 100   // Number MAX motor steps per cycle
 #define MIN_STEPS 1     // Number MIN motor steps per cycle
 #define MAX_INTERVAL 30 // Maximum Interval time (s)
@@ -10,8 +11,9 @@ SoftwareSerial mySerial(3,2); // pin 2 = TX, pin 3 = RX (unused)
 #define MAX_EXP_TIME 30 // Maximum Exposure time (s)
 #define MIN_EXP_TIME 0  // Mininum Exposure time (s)
 
-#define WAIT_INITIAL     1000
-#define STABILIZE_DELAY  100
+#define INITIAL_DELAY    1000   // Initial delay before starting the TL
+#define STABILIZE_DELAY  1000   // Delay after moving the motor
+
 
 enum ModeScreen {
     M_EXP_TIME, // Set the exposure time
