@@ -76,13 +76,14 @@ int pendingSteps = -1;
 // -----------------------------------------------------------------------------
 
 void resetTimer() {
-    Serial.println("End timer at %lu",millis());
+    Serial.println("End timer at " + millis());
     timer.status  = false;
     timer.endTime = 0;
 }
 
 void startTimer(int delay) {
-    Serial.println("Starting timer of %i ms at %lu",delay,millis());
+    Serial.println("Starting timer of " + String(delay) + " ms at " + millis());
+
     timer.status  = true;
     timer.endTime = millis() + delay;
 }
