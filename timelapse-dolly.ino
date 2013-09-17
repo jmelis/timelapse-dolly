@@ -89,15 +89,16 @@ bool checkTimer() {
     return millis() >= timer.endTime;
 }
 
-void handleTimer(int delay) {
+bool handleTimer(int delay) {
     if (!timer.status) {
         startTimer(delay);
     } else {
         if (checkTimer()) {
             resetTimer();
-            cycleState = state;
+            return true;
         }
     }
+    return false;
 }
 
 // -----------------------------------------------------------------------------
@@ -299,7 +300,9 @@ void loop() {
 
     switch(cycleState) {
         case WAIT_START:
-            handleTimer(WAIT_INITIAL, TRIGGER_PHOTO);
+            if (handleTimer(INITIAL_DELAY)) {
+                cycleState = TRIGGER_PHOTO;
+            }
             break;
 
         case TRIGGER_PHOTO:
@@ -308,11 +311,15 @@ void loop() {
             break;
 
         case WAIT_EXP_TIME:
-            handleTimer(params.expTime, WAIT_INTERVAL);
+            if (handleTimer(params.expTime)) {
+                cycleState = WAIT_INTERVAL;
+            }
             break;
 
         case WAIT_INTERVAL:
-            handleTimer(params.expTime, MOVE_MOTOR);
+            if (handleTimer(params.interval)) {
+                cycleState = MOVE_MOTOR;
+            }
             break;
 
         case MOVE_MOTOR:
@@ -321,7 +328,7 @@ void loop() {
             }
 
             if (pendingSteps > 0) {
-                Serial.println("Motor step %i", pendingSteps);
+                Serial.println("Motor step " + pendingSteps);
                 pendingSteps--;
             } else {
                 pendingSteps = -1;
@@ -329,8 +336,10 @@ void loop() {
             }
             break;
 
-        case WAIT_STABILIZE;
-            handleTimer(WAIT_STABILIZE, TRIGGER_PHOTO);
+        case WAIT_STABILIZE:
+            if (handleTimer(STABILIZE_DELAY)) {
+                cycleState = TRIGGER_PHOTO;
+            }
             break;
     }
 
