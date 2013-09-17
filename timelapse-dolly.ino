@@ -28,7 +28,7 @@ enum CycleState {
     WAIT_INTERVAL,  // Wait for interval time
     MOVE_MOTOR,     // Move the motor
     WAIT_STABILIZE  // Stabilize during STABILIZE_DELAY
-}
+};
 
 // Stepper Motor pins
 const int dirPin  = 6;
