@@ -14,10 +14,10 @@ SoftwareSerial mySerial(3,2); // pin 2 = TX, pin 3 = RX (unused)
 #define STABILIZE_DELAY  100
 
 enum ModeScreen {
-    M_STEPS    = 0, // Number of motor steps per cycle
-    M_INTERVAL = 1, // Interval between pictures
-    M_EXP_TIME = 2, // Set the exposure time
-    M_TL_START = 3  // Start/Stop the Time-lapse
+    M_EXP_TIME, // Set the exposure time
+    M_INTERVAL, // Interval between pictures
+    M_STEPS ,   // Number of motor steps per cycle
+    M_TL_START  // Start/Stop the Time-lapse
 };
 
 // Stepper Motor pins
@@ -34,7 +34,7 @@ int plusBtnState  = 0;
 int minusBtnState = 0;
 
 // Initialize the UI to the first Mode state
-ModeScreen mScreen = M_STEPS;
+ModeScreen mScreen = M_EXP_TIME;
 
 // Time-lapse params
 int  pSteps    = MIN_STEPS;    // Number of motor steps per cycle
@@ -51,10 +51,10 @@ bool firstPicture = true; // If first picture of TL do special things
 void nextScreen() {
     // Get next UI screen
     switch (mScreen) {
-        case M_STEPS:    mScreen = M_INTERVAL; break;
-        case M_INTERVAL: mScreen = M_EXP_TIME; break;
-        case M_EXP_TIME: mScreen = M_TL_START; break;
-        case M_TL_START: mScreen = M_STEPS;    break;
+        case M_EXP_TIME: mScreen = M_INTERVAL; break;
+        case M_INTERVAL: mScreen = M_STEPS;    break;
+        case M_STEPS:    mScreen = M_TL_START; break;
+        case M_TL_START: mScreen = M_EXP_TIME; break;
     }
 }
 
@@ -64,18 +64,18 @@ void nextScreen() {
 
 void manageScreen(int valueChange) {
     switch (mScreen) {
-        case M_STEPS:    mStepsChange(valueChange);    break;
-        case M_INTERVAL: mIntervalChange(valueChange); break;
         case M_EXP_TIME: mExpTimeChange(valueChange);  break;
-        case M_TL_START: mStartChange();    break;
+        case M_INTERVAL: mIntervalChange(valueChange); break;
+        case M_STEPS:    mStepsChange(valueChange);    break;
+        case M_TL_START: mStartChange();               break;
     }
 }
 
-void mStepsChange(int valueChange) {
-    int temp = pSteps + valueChange;
+void mExpTimeChange(int valueChange) {
+    int temp = pExpTime + valueChange;
 
-    if (temp >= MIN_STEPS && temp <= MAX_STEPS) {
-        pSteps = temp;
+    if (temp >= MIN_EXP_TIME && temp <= MAX_EXP_TIME) {
+        pExpTime = temp;
     }
 }
 
@@ -87,11 +87,11 @@ void mIntervalChange(int valueChange) {
     }
 }
 
-void mExpTimeChange(int valueChange) {
-    int temp = pExpTime + valueChange;
+void mStepsChange(int valueChange) {
+    int temp = pSteps + valueChange;
 
-    if (temp >= MIN_EXP_TIME && temp <= MAX_EXP_TIME) {
-        pExpTime = temp;
+    if (temp >= MIN_STEPS && temp <= MAX_STEPS) {
+        pSteps = temp;
     }
 }
 
@@ -118,20 +118,20 @@ void render() {
     clearLCD();
 
     switch (mScreen) {
-        case M_STEPS:    renderStepsScreen();    break;
-        case M_INTERVAL: renderIntervalScreen(); break;
         case M_EXP_TIME: renderExpTimeScren();   break;
+        case M_INTERVAL: renderIntervalScreen(); break;
+        case M_STEPS:    renderStepsScreen();    break;
         case M_TL_START: renderStartScren();     break;
     }
 }
 
-void renderStepsScreen() {
+void renderExpTimeScren() {
     char tempstring[16];
-    sprintf(tempstring,"%16d",pSteps);
+    sprintf(tempstring,"%16d",pExpTime);
 
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
-    mySerial.write("Number of Steps:");
+    mySerial.write("> Exposure Time");
 
     mySerial.write(254); // move cursor to beginning of second line
     mySerial.write(192);
@@ -144,20 +144,20 @@ void renderIntervalScreen() {
 
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
-    mySerial.write("Interval:       ");
+    mySerial.write("> Interval");
 
     mySerial.write(254); // move cursor to beginning of second line
     mySerial.write(192);
     mySerial.write(tempstring);
 }
 
-void renderExpTimeScren() {
+void renderStepsScreen() {
     char tempstring[16];
-    sprintf(tempstring,"%16d",pExpTime);
+    sprintf(tempstring,"%16d",pSteps);
 
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
-    mySerial.write("Exposure Time:  ");
+    mySerial.write("> Number of Steps");
 
     mySerial.write(254); // move cursor to beginning of second line
     mySerial.write(192);
@@ -167,7 +167,7 @@ void renderExpTimeScren() {
 void renderStartScren() {
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
-    mySerial.write("Start/Stop TL:  ");
+    mySerial.write("> Start/Stop TL");
 
     mySerial.write(254); // move cursor to beginning of second line
     mySerial.write(192);
