@@ -10,7 +10,7 @@ SoftwareSerial mySerial(3,2); // pin 2 = TX, pin 3 = RX (unused)
 #define MAX_EXP_TIME 30 // Maximum Exposure time (s)
 #define MIN_EXP_TIME 0  // Mininum Exposure time (s)
 
-#define INITIAL_DELAY    1000
+#define WAIT_INITIAL     1000
 #define STABILIZE_DELAY  100
 
 enum ModeScreen {
@@ -19,6 +19,16 @@ enum ModeScreen {
     M_STEPS ,   // Number of motor steps per cycle
     M_TL_START  // Start/Stop the Time-lapse
 };
+
+enum CycleState {
+    OFF,            // Time-lapse is off
+    WAIT_START,     // Before starting wait for WAIT_INITIAL
+    TRIGGER_PHOTO,  // Trigger the photo
+    WAIT_EXP_TIME,  // Wait for exposure time
+    WAIT_INTERVAL,  // Wait for interval time
+    MOVE_MOTOR,     // Move the motor
+    WAIT_STABILIZE  // Stabilize during STABILIZE_DELAY
+}
 
 // Stepper Motor pins
 const int dirPin  = 6;
@@ -36,13 +46,59 @@ int minusBtnState = 0;
 // Initialize the UI to the first Mode state
 ModeScreen mScreen = M_EXP_TIME;
 
-// Time-lapse params
-int  pSteps    = MIN_STEPS;    // Number of motor steps per cycle
-int  pInterval = MIN_INTERVAL; // Interval between pictures
-int  pExpTime  = MIN_EXP_TIME; // Exposure Time
-bool pTLState  = false;        // Time-lapse state initialized to off
+// Cycle state
+CycleState cycleState = OFF;
 
-bool firstPicture = true; // If first picture of TL do special things
+// The Parameters data structure holds the Time-lapse parameters
+typedef struct {
+    int expTime;    // Exposure Time
+    int interval;   // Interval between pictures
+    int steps;      // Number of motor steps per cycle
+} Parameters;
+
+Parameters params  = {MIN_EXP_TIME, MIN_INTERVAL, MIN_STEPS};
+
+// The Timer data structure keeps track of a running timer
+typedef struct {
+    enum {OFF, ON} status;
+    unsigned long endTime;
+} Timer;
+
+Timer timer = { OFF, 0 };
+
+// if -1 then not moving motor, otherwise the number of remaining steps
+int pendingSteps = -1;
+
+// -----------------------------------------------------------------------------
+// Timer functions
+// -----------------------------------------------------------------------------
+
+void resetTimer() {
+    Serial.println("End timer at %lu",millis());
+    timer.status  = OFF;
+    timer.endTime = 0;
+}
+
+void startTimer(int delay) {
+    Serial.println("Starting timer of %i ms at %lu",delay,millis());
+    timer.status  = ON;
+    timer.endTime = millis() + delay;
+}
+
+bool checkTimer() {
+    return millis() >= timer.endTime;
+}
+
+void handleTimer(int delay, CycleState state) {
+    if (timer.status == OFF) {
+        startTimer(delay);
+    } else {
+        if (checkTimer()) {
+            resetTimer();
+            cycleState = state;
+        }
+    }
+}
 
 // -----------------------------------------------------------------------------
 // LCD Screen Cycle
@@ -72,34 +128,34 @@ void manageScreen(int valueChange) {
 }
 
 void mExpTimeChange(int valueChange) {
-    int temp = pExpTime + valueChange;
+    int temp = params.expTime + valueChange;
 
     if (temp >= MIN_EXP_TIME && temp <= MAX_EXP_TIME) {
-        pExpTime = temp;
+        params.expTime = temp;
     }
 }
 
 void mIntervalChange(int valueChange) {
-    int temp = pInterval + valueChange;
+    int temp = params.interval + valueChange;
 
     if (temp >= MIN_INTERVAL && temp <= MAX_INTERVAL) {
-        pInterval = temp;
+        params.interval = temp;
     }
 }
 
 void mStepsChange(int valueChange) {
-    int temp = pSteps + valueChange;
+    int temp = params.steps + valueChange;
 
     if (temp >= MIN_STEPS && temp <= MAX_STEPS) {
-        pSteps = temp;
+        params.steps = temp;
     }
 }
 
 void mStartChange() {
-    pTLState = !pTLState;
-
-    if (pTLState) {
-        firstPicture = true;
+    if (cycleState == OFF) {
+        cycleState = WAIT_START;
+    } else {
+        cycleState = OFF;
     }
 }
 
@@ -127,7 +183,7 @@ void render() {
 
 void renderExpTimeScren() {
     char tempstring[16];
-    sprintf(tempstring,"%16d",pExpTime);
+    sprintf(tempstring,"%16d",params.expTime);
 
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
@@ -140,7 +196,7 @@ void renderExpTimeScren() {
 
 void renderIntervalScreen() {
     char tempstring[16];
-    sprintf(tempstring,"%16d",pInterval);
+    sprintf(tempstring,"%16d",params.interval);
 
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
@@ -153,7 +209,7 @@ void renderIntervalScreen() {
 
 void renderStepsScreen() {
     char tempstring[16];
-    sprintf(tempstring,"%16d",pSteps);
+    sprintf(tempstring,"%16d",params.steps);
 
     mySerial.write(254); // move cursor to beginning of first line
     mySerial.write(128);
@@ -171,39 +227,12 @@ void renderStartScren() {
 
     mySerial.write(254); // move cursor to beginning of second line
     mySerial.write(192);
-    if (pTLState) {
+
+    if (cycleState != OFF) {
         mySerial.write("On");
     } else {
         mySerial.write("Off");
     }
-}
-
-// -----------------------------------------------------------------------------
-// Motor Cycle
-// -----------------------------------------------------------------------------
-
-void doCycle() {
-    // Trigger photo
-    Serial.println("SNAP!");
-
-    // exp time
-    Serial.println("start exp-time");
-    delay(pExpTime*1000);
-    Serial.println("stop exp-time");
-
-    // interval
-    Serial.println("start interval");
-    delay(pInterval*1000);
-    Serial.println("stop interval");
-
-    // move
-    Serial.println("Start stepper-motor");
-    delay(200);
-    Serial.println("Stop stepper-motor");
-
-    // Stabilize camera delay
-    Serial.println("delay STABILIZE_DELAY");
-    delay(STABILIZE_DELAY);
 }
 
 // -----------------------------------------------------------------------------
@@ -268,12 +297,41 @@ void loop() {
         render();
     }
 
-    if (pTLState) {
-        if (firstPicture) {
-            firstPicture = false;
-            delay(INITIAL_DELAY);
-        }
-        doCycle();
+    switch(cycleState) {
+        case WAIT_START:
+            handleTimer(WAIT_INITIAL, TRIGGER_PHOTO);
+            break;
+
+        case TRIGGER_PHOTO:
+            Serial.println("SNAP!");
+            cycleState = WAIT_EXP_TIME;
+            break;
+
+        case WAIT_EXP_TIME:
+            handleTimer(params.expTime, WAIT_INTERVAL);
+            break;
+
+        case WAIT_INTERVAL:
+            handleTimer(params.expTime, MOVE_MOTOR);
+            break;
+
+        case MOVE_MOTOR:
+            if (pendingSteps == -1) {
+                pendingSteps = params.steps;
+            }
+
+            if (pendingSteps > 0) {
+                Serial.println("Motor step %i", pendingSteps);
+                pendingSteps--;
+            } else {
+                pendingSteps = -1;
+                cycleState = WAIT_STABILIZE;
+            }
+            break;
+
+        case WAIT_STABILIZE;
+            handleTimer(WAIT_STABILIZE, TRIGGER_PHOTO);
+            break;
     }
 
     delay(1);
