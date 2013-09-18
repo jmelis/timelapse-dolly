@@ -14,7 +14,6 @@ SoftwareSerial mySerial(3,2); // pin 2 = TX, pin 3 = RX (unused)
 #define INITIAL_DELAY    1000   // Initial delay before starting the TL
 #define STABILIZE_DELAY  1000   // Delay after moving the motor
 
-
 enum ModeScreen {
     M_EXP_TIME, // Set the exposure time
     M_INTERVAL, // Interval between pictures
@@ -83,7 +82,6 @@ void resetTimer() {
 
 void startTimer(int delay) {
     Serial.println("Starting timer of " + String(delay) + " ms at " + millis());
-
     timer.status  = true;
     timer.endTime = millis() + delay;
 }
